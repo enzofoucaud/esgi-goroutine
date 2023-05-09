@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/jpeg"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,7 +14,126 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	THINKING = iota + 1
+	EATING
+	STARVING
+	EATING_TIME   = 3
+	STARVING_TIME = 9
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func main() {
+	arg1 := os.Args[1]
+
+	if arg1 == "resize" {
+		resizeImages()
+	} else if arg1 == "dining" {
+		diningPhilosophers()
+	} else {
+		fmt.Println("Invalid argument")
+		os.Exit(1)
+	}
+}
+
+func diningPhilosophers() {
+	philosophers := make([]*Philosopher, 5)
+
+	forks := make([]*Fork, 5)
+
+	for i := 0; i < 5; i++ {
+		forks[i].init(i)
+	}
+
+	for i := 0; i < 5; i++ {
+		philosophers[i].leftFork = forks[i]
+		philosophers[i].rightFork = forks[(i+1)%5]
+	}
+
+	for id, philosopher := range philosophers {
+		go philosopher.init(id)
+	}
+
+}
+
+type Philosopher struct {
+	id                int
+	leftFork          *Fork
+	rightFork         *Fork
+	state             int
+	starvingCountdown time.Time
+}
+
+func (p *Philosopher) init(id int) {
+	p.id = id
+	p.think()
+}
+
+func (p *Philosopher) takeForks() {
+	p.leftFork.take()
+	p.rightFork.take()
+}
+
+func (p *Philosopher) releaseForks() {
+	p.leftFork.release()
+	p.rightFork.release()
+}
+
+func (p *Philosopher) think() {
+	fmt.Println("Philosopher ", p.id, " starts thinking")
+	p.state = THINKING
+	time.Sleep(time.Duration(rand.Intn(2)*1000) * time.Millisecond)
+
+	go p.eat()
+	go p.starving()
+}
+
+func (p *Philosopher) starving() {
+	fmt.Println("Philosopher ", p.id, " starts starving")
+	p.state = STARVING
+	p.starvingCountdown = time.Now().Add(time.Duration(STARVING_TIME*1000) * time.Millisecond)
+	for range time.Tick(100 * time.Millisecond) {
+		if time.Now().After(p.starvingCountdown) && p.state == STARVING {
+			p.die()
+		}
+	}
+}
+
+func (p *Philosopher) eat() {
+	fmt.Println("Philosopher ", p.id, " starts eating")
+	p.takeForks()
+	p.state = EATING
+	time.Sleep(time.Duration(EATING_TIME*1000) * time.Millisecond)
+	fmt.Println("Philosopher ", p.id, " stops eating")
+	p.releaseForks()
+}
+
+func (p *Philosopher) die() {
+	fmt.Println("Philosopher died")
+	os.Exit(1)
+}
+
+type Fork struct {
+	lock sync.Mutex
+	id   int
+}
+
+func (f *Fork) init(id int) {
+	f.id = id
+}
+
+func (f *Fork) take() {
+	f.lock.Lock()
+}
+
+func (f *Fork) release() {
+	f.lock.Unlock()
+}
+
+func resizeImages() {
 	// init logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
@@ -58,6 +178,7 @@ func main() {
 	log.Info().Msg(fmt.Sprintf("With go routine: %s", time.Since(elapsedWith)))
 	log.Info().Msg(fmt.Sprintf("Difference: %s", time.Since(elapsedWith)-time.Since(elapsedWithout)))
 	log.Info().Msg(fmt.Sprintf("Difference: %f", float64(time.Since(elapsedWith)-time.Since(elapsedWithout))/float64(time.Since(elapsedWithout))*100) + "%")
+
 }
 
 func deleteResizeFiles() {
