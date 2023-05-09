@@ -32,6 +32,7 @@ func main() {
 	if arg1 == "resize" {
 		resizeImages()
 	} else if arg1 == "dining" {
+		fmt.Println("je dine, tu dines, il dine, nous dinons, vous dinez, ils dinent")
 		diningPhilosophers()
 	} else {
 		fmt.Println("Invalid argument")
@@ -41,11 +42,15 @@ func main() {
 
 func diningPhilosophers() {
 	philosophers := make([]*Philosopher, 5)
+	for i := range philosophers {
+		philosophers[i] = &Philosopher{}
+	}
 
 	forks := make([]*Fork, 5)
 
 	for i := 0; i < 5; i++ {
-		forks[i].init(i)
+		forks[i] = &Fork{}
+		forks[i].init()
 	}
 
 	for i := 0; i < 5; i++ {
@@ -53,11 +58,23 @@ func diningPhilosophers() {
 		philosophers[i].rightFork = forks[(i+1)%5]
 	}
 
-	for id, philosopher := range philosophers {
-		go philosopher.init(id)
-	}
+	fmt.Println("Philosophers are seated")
+	for {
+		for id, philosopher := range philosophers {
+			go philosopher.init(id)
+		}
 
+		fmt.Println("Philosophers are eating")
+
+		table.wg.Wait()
+	}
 }
+
+type Table struct {
+	wg sync.WaitGroup
+}
+
+var table = &Table{}
 
 type Philosopher struct {
 	id                int
@@ -68,8 +85,14 @@ type Philosopher struct {
 }
 
 func (p *Philosopher) init(id int) {
+	fmt.Println("Philosopher ", id, " is seated")
 	p.id = id
 	p.think()
+
+	go func() {
+		defer table.wg.Done()
+		fmt.Println("Philosopher ", id, " is done eating")
+	}()
 }
 
 func (p *Philosopher) takeForks() {
@@ -83,6 +106,7 @@ func (p *Philosopher) releaseForks() {
 }
 
 func (p *Philosopher) think() {
+	table.wg.Add(1)
 	fmt.Println("Philosopher ", p.id, " starts thinking")
 	p.state = THINKING
 	time.Sleep(time.Duration(rand.Intn(2)*1000) * time.Millisecond)
@@ -109,20 +133,20 @@ func (p *Philosopher) eat() {
 	time.Sleep(time.Duration(EATING_TIME*1000) * time.Millisecond)
 	fmt.Println("Philosopher ", p.id, " stops eating")
 	p.releaseForks()
+	go p.think()
 }
 
 func (p *Philosopher) die() {
-	fmt.Println("Philosopher died")
+	fmt.Println("Philosopher", p.id, "died")
 	os.Exit(1)
 }
 
 type Fork struct {
 	lock sync.Mutex
-	id   int
 }
 
-func (f *Fork) init(id int) {
-	f.id = id
+func (f *Fork) init() {
+	// f.lock = sync.Mutex{}
 }
 
 func (f *Fork) take() {
