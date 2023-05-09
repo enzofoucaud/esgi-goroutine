@@ -50,11 +50,10 @@ type Table struct {
 var table = &Table{}
 
 type Philosopher struct {
-	id                int
-	leftFork          *Fork
-	rightFork         *Fork
-	state             int
-	starvingCountdown time.Time
+	id                  int
+	leftFork, rightFork *Fork
+	state               int
+	starvingCountdown   time.Time
 }
 
 func (p *Philosopher) init(id int) {
