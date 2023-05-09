@@ -39,9 +39,6 @@ func diningPhilosophers() {
 		for id, philosopher := range philosophers {
 			go philosopher.init(id)
 		}
-
-		log.Info().Msg("Philosophers are eating")
-
 		table.wg.Wait()
 	}
 }
