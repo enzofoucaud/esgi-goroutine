@@ -66,6 +66,9 @@ func deleteResizeFiles() {
 	}
 
 	for _, file := range f {
+		if file.Name() == ".gitkeep" {
+			continue
+		}
 		err = os.Remove("./imgResize/" + file.Name())
 		if err != nil {
 			log.Fatal().Err(err).Msg("error deleting file")
