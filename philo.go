@@ -43,16 +43,23 @@ func diningPhilosophers() {
 	}
 }
 
+/*
+ * Table
+ */
+
 type Table struct {
 	wg sync.WaitGroup
 }
 
 var table = &Table{}
 
+/*
+ * Philosopher
+ */
+
 type Philosopher struct {
-	id                  int
+	id, state           int
 	leftFork, rightFork *Fork
-	state               int
 	starvingCountdown   time.Time
 }
 
@@ -112,6 +119,10 @@ func (p *Philosopher) die() {
 	log.Warn().Int("id", p.id).Msg("Philosopher died")
 	os.Exit(1)
 }
+
+/*
+ * Fork
+ */
 
 type Fork struct {
 	lock sync.Mutex
