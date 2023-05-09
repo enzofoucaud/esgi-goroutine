@@ -17,9 +17,7 @@ func main() {
 	// init logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	arg := os.Args[1]
-
-	switch arg {
+	switch os.Args[1] {
 	case "resize":
 		resizeImages()
 	case "dining":
